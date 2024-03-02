@@ -6,6 +6,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 CRLF = "\r\n\r\n"
+NEW_LINE=  "\r\n"
+
 
 class HTTPHandler:
     def __init__(self) -> None:
@@ -16,13 +18,35 @@ class HTTPHandler:
         self.http_method = 'GET'
         self.path = '/'
         self.http_version = '1.1'
+        self.conn = None
+        self.addr  = None
+        self.default_html_file_name = 'index'
+
+    def _get_response_line(self):
+        return f'HTTP/1.1 200 OK {NEW_LINE}'
+    
+    def _get_content_type(self):
+        return f'ContentType: text/html; charset=utf-8 {NEW_LINE}'
     
     def handle_request(self, conn:socket.SocketType,addr:socket.AddressInfo):
-         # For debug purpose reading 1024 bytes
-        logger.info("Connected by", addr)
+        response = ''
+        self.conn  = conn
+        self.addr = addr
+        logger.info("Connected by %s", addr)
+
+        # For simplicity reading 1024 bytes
         data = conn.recv(1024)
         logging.debug("Data is %s ",data.decode())
         self.raw_data = data.decode()
+        self._parse_request()
+        html_file = self._get_html_file()
+
+        response += self._get_response_line()
+        response += self._get_content_type()
+        response += CRLF
+        response += html_file
+        conn.send(response.encode())
+        conn.close()
 
     def _parse_request(self):
         _header_data_split = self.raw_data.split(CRLF)
@@ -36,6 +60,7 @@ class HTTPHandler:
         logger.debug("Raw headers is %s",self.raw_headers)
         logger.debug("Raw body is %s ",self.raw_body)
         self._raw_headers_to_dict()
+        
     
     def _raw_headers_to_dict(self):
         splitted_headers = self.raw_headers.split('\n')
@@ -68,9 +93,11 @@ class HTTPHandler:
         logger.debug('Header array is  %s',self.headers_dict)
 
     def _get_html_file(self):
-
         try :
-            with open('www/{}.html'.format(self.path.split('/')[1]),'r') as f :
+            file_name  = self.path.split('/')[1]
+            if file_name == '':
+                file_name = self.default_html_file_name
+            with open('www/{}.html'.format(file_name,'r')) as f :
                 content = f.read()
                 return content
         except Exception as e :
