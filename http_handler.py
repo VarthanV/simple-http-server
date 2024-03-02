@@ -90,7 +90,7 @@ class HTTPHandler:
                 self.headers_dict[key] = val
 
         logger.debug("Protocol info is %s",request_line)
-        logger.debug('Header array is  %s',self.headers_dict)
+        logger.debug('Header dict is  %s',self.headers_dict)
 
     def _get_html_file(self):
         try :
@@ -100,8 +100,8 @@ class HTTPHandler:
             with open('www/{}.html'.format(file_name,'r')) as f :
                 content = f.read()
                 return content
-        except Exception as e :
-            logger.error("Exception is %s",exc_info=1,stack_info=True)
+        except FileNotFoundError as e :
+            logger.error("Exception is %s",e)
             return "<h1> Not found </h1>"
         
 '''
